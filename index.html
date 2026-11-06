@@ -251,6 +251,27 @@ table{border-collapse:collapse;width:100%}
 .evcard .row{display:flex;gap:6px;align-items:center}
 .evcard .capbtn{flex:1;min-width:0;font-size:15px;padding:6px 8px}
 
+/* lingua e accesso */
+.langsw button{padding:4px 9px;font-size:12px;font-weight:600}
+.gate{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(32px + env(safe-area-inset-top,0px)) 32px}
+.gate-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:520px;width:100%;padding:22px;display:flex;flex-direction:column;gap:14px}
+.gate-top{display:flex;align-items:center;gap:12px}
+.gate-logo{width:64px;height:64px;border-radius:50%;box-shadow:0 0 0 1px var(--line)}
+.gate-name{font-family:var(--f-disp);font-weight:700;font-size:28px;flex:1}
+.gate-card h2{margin:0;font-family:var(--f-disp);font-size:24px;text-transform:uppercase;letter-spacing:.02em}
+.gate-card p{margin:0}
+.gate-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gate-form .full{grid-column:1/-1}
+@media (max-width:520px){.gate-form{grid-template-columns:1fr}}
+.gate-form input,.gate-form select,.gate-form textarea{padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);width:100%}
+.gate-form textarea{min-height:70px;resize:vertical}
+.gate-err{color:var(--bad);font-size:13px;min-height:1.2em}
+.gate-state{display:flex;gap:12px;align-items:flex-start}
+.gate-state .dot{width:14px;height:14px;border-radius:50%;flex:none;margin-top:5px;background:var(--ball)}
+.gate-state.bad .dot{background:var(--bad)}
+@media (prefers-reduced-motion:no-preference){.gate-state:not(.bad) .dot{animation:pulse 1.6s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.35}}
+
 /* import view */
 .imp{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:12px;align-items:start}
 @media (max-width:960px){.imp{grid-template-columns:minmax(0,1fr)}}
@@ -303,6 +324,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px;f
       <button role="tab" data-view="data" aria-selected="false">Dati ed export</button>
     </nav>
     <div class="matchinfo" id="matchInfo"></div>
+    <div class="seg langsw" role="group" aria-label="Lingua"><button data-lang="it" aria-pressed="false">IT</button><button data-lang="en" aria-pressed="false">EN</button></div>
   </header>
 
   <div id="sampleBanner" class="banner" hidden>
@@ -547,8 +569,26 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px;f
         </div>
       </div>
     </div>
+    <div class="panel sec">
+      <h3>Accessi</h3>
+      <div class="status" id="accStatus"><i></i><span></span></div>
+      <div id="accDevice" class="fhint"></div>
+      <div class="actions"><button class="btn small" id="accDemo">Vedi la schermata di accesso</button></div>
+    </div>
   </section>
   </main>
+</div>
+
+<div class="gate" id="gate" hidden>
+  <div class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <div class="gate-top">
+      <img class="gate-logo" id="gateLogo" alt="" width="64" height="64">
+      <div class="gate-name">AllinScout</div>
+      <div class="seg langsw" role="group" aria-label="Lingua"><button data-lang="it" aria-pressed="false">IT</button><button data-lang="en" aria-pressed="false">EN</button></div>
+    </div>
+    <div id="gateDemoNote" class="banner" hidden><span>Anteprima: le richieste non vengono inviate.</span><button class="btn small" id="gateDemoClose">Chiudi anteprima</button></div>
+    <div id="gateBody" class="col" style="gap:12px"></div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" hidden>
@@ -571,6 +611,65 @@ const pad2=n=>String(n).padStart(2,'0');
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,10);
+
+/* ---------- lingua: italiano / inglese ---------- */
+const I18N={en:{"Rilevazione": "Scouting", "Statistiche": "Statistics", "Squadre e formazioni": "Teams & lineups", "Tasti rapidi": "Shortcut keys", "Importa .dvw": "Import .dvw", "Dati ed export": "Data & export", "Sezioni": "Sections", "Lingua": "Language", "Stai guardando una": "You are looking at a", "partita di esempio": "sample match", "generata automaticamente, per mostrare come funziona.": "generated automatically to show how it works.", "Inizia una partita vera": "Start a real match", "Casa": "Home", "Ospiti": "Away", "Time-out: ‹n›": "Time-outs: ‹n›", "Battuta: ‹H›": "Serving: ‹H›", "Battuta: ‹A›": "Serving: ‹A›", "Partita conclusa": "Match over", "vince ‹H›": "won by ‹H›", "vince ‹A›": "won by ‹A›", "Set ‹n›": "Set ‹n›", "Set ‹n›: formazione incompleta per ‹H›. Senza formazione non si possono seguire rotazioni e battitore.": "Set ‹n›: incomplete lineup for ‹H›. Without a lineup, rotations and server can't be tracked.", "Set ‹n›: formazione incompleta per ‹A›. Senza formazione non si possono seguire rotazioni e battitore.": "Set ‹n›: incomplete lineup for ‹A›. Without a lineup, rotations and server can't be tracked.", "Set ‹n›: formazione incompleta per ‹H› e ‹A›. Senza formazione non si possono seguire rotazioni e battitore.": "Set ‹n›: incomplete lineups for ‹H› and ‹A›. Without lineups, rotations and server can't be tracked.", "Imposta formazioni": "Set lineups", "Controlla formazioni": "Check lineups", "Inizio set ‹n›. Batte ‹H›.": "Start of set ‹n›. ‹H› serves.", "Inizio set ‹n›. Batte ‹A›.": "Start of set ‹n›. ‹A› serves.", "Inizio set ‹n›: formazioni copiate dal set precedente. Batte ‹H›.": "Start of set ‹n›: lineups copied from the previous set. ‹H› serves.", "Inizio set ‹n›: formazioni copiate dal set precedente. Batte ‹A›.": "Start of set ‹n›: lineups copied from the previous set. ‹A› serves.", "Rotazione avanti": "Rotate forward", "Rotazione indietro": "Rotate back", "Rotazione avanti ‹H›": "Rotate ‹H› forward", "Rotazione avanti ‹A›": "Rotate ‹A› forward", "Rotazione indietro ‹H›": "Rotate ‹H› back", "Rotazione indietro ‹A›": "Rotate ‹A› back", "Codice": "Code", "Invio": "Enter", "registra ·": "records ·", "ultimo ·": "last ·", "pulisci": "clear", "Registra": "Record", "Punto casa": "Home point", "Punto ospiti": "Away point", "Annulla ultima azione": "Undo last action", "Modifica tasti": "Edit keys", "Modifica azione ‹n›": "Edit action ‹n›", "Prossima battuta:": "Next serve:", "(predef.)": "(default)", "non in rosa": "not on roster", "combinazione": "combination", "muratori": "blockers", "Punto ‹H›": "Point ‹H›", "Punto ‹A›": "Point ‹A›", "Guida ai codici": "Code guide", "Fondamentali": "Skills", "Valutazioni": "Evaluations", "Tipo": "Type", "Codici speciali": "Special codes", "Punti automatici": "Automatic points", "Dopo l'attacco": "After the attack", "Battuta": "Serve", "Ricezione": "Reception", "Attacco": "Attack", "Muro": "Block", "Difesa": "Dig", "Alzata": "Set", "Free ball": "Free ball", "Perfetta / punto": "Perfect / point", "Positiva": "Positive", "Media / coperta": "Average / covered", "Negativa": "Negative", "Murata, ribaltata, invasione": "Blocked, overpass, net fault", "Errore": "Error", "Alta · float in battuta": "High · float on serve", "Mezza · salto float": "Medium · jump float", "Veloce · salto spin": "Quick · jump spin", "Alta": "High", "float in battuta": "float on serve", "Mezza": "Medium", "salto float": "jump float", "Veloce": "Quick", "salto spin": "jump spin", "Tesa": "Tense", "Super": "Super", "Spinta": "Push", "Altro": "Other", "Punto manuale": "Manual point", "Cambio: esce ‹n›, entra ‹n›": "Substitution: ‹n› out, ‹n› in", "Time-out": "Time-out", "Correggi rotazione": "Fix rotation", "Ace": "Ace", "Attacco punto": "Attack kill", "Muro punto": "Block point", "Errore: punto avversario": "Error: point to opponent", "Murato: punto avversario": "Blocked: point to opponent", "Forte, piazzata, pallonetto": "Hard, placed, tip", "Numero di muratori": "Number of blockers", "Più codici sulla stessa riga separati da spazio:": "Several codes on one line, separated by spaces:", "└ squadra: * (o niente) = casa, a = ospiti": "└ team: * (or nothing) = home, a = away", "Carica video": "Load video", "Carica video della partita": "Load the match video", "Nessun video: le azioni vengono salvate senza tempo video.": "No video: actions are saved without a video time.", "Velocità": "Speed", "Anticipo (s)": "Lead-in (s)", "Pausa mentre scrivo": "Pause while typing", "Con la pausa automatica il video si ferma alla prima lettera di un codice e riparte con lo": "With auto-pause the video stops at the first letter of a code and restarts with", "spazio": "Space", "o con": "or", "Ogni codice salva il tempo in cui hai iniziato a scriverlo.": "Each code saves the time you started typing it.", ". Ogni codice salva il tempo in cui hai iniziato a scriverlo.": ". Each code saves the time you started typing it.", "Mentre scrivi:": "While typing:", "play/pausa ·": "play/pause ·", "indietro ‹n› s ·": "back ‹n› s ·", "avanti ‹n› s ·": "forward ‹n› s ·", "avanti ‹n› s": "forward ‹n› s", "clic sul tempo di un'azione per rivederla.": "click an action's time to watch it again.", "Carica il video della partita per rivedere le azioni": "Load the match video to watch the actions again", "Azioni": "Actions", "Azioni · ‹n›": "Actions · ‹n›", "Clic sul codice per modificarlo": "Click a code to edit it", "Set": "Set", "Punti": "Points", "Descrizione": "Description", "Video": "Video", "Modifica": "Edit", "Elimina azione ‹n›": "Delete action ‹n›", "fine set": "set end", "(stesso punto)": "(same point)", "Nessuna azione. Scrivi il primo codice, per esempio": "No actions yet. Type the first code, for example", "per la battuta del n.‹n› di casa.": "for the serve of home player no. ‹n›.", "Azione ‹n› eliminata": "Action ‹n› deleted", "Annullata: ": "Undone: ", "Il n.‹n› non è nella rosa": "No. ‹n› is not on the roster", "Il n.‹n› non è in campo": "No. ‹n› is not on court", "Al servizio c'è l'altra squadra": "The other team is serving", "In zona ‹n› c'è il n.‹n›": "Zone ‹n› has no. ‹n›", "Partita già conclusa": "Match already over", "Codice vuoto": "Empty code", "Manca il fondamentale (S R A B D E F)": "Skill missing (S R A B D E F)", "Fondamentale non valido: usa S R A B D E F": "Invalid skill: use S R A B D E F", "Formato non riconosciuto": "Format not recognised", "In modifica scrivi un solo codice": "When editing, type a single code", "Punto assegnato a ‹H›": "Point awarded to ‹H›", "Punto assegnato a ‹A›": "Point awarded to ‹A›", "Time-out ‹H›": "Time-out ‹H›", "Time-out ‹A›": "Time-out ‹A›", "Rotazione avanti · ‹H›": "Rotation forward · ‹H›", "Rotazione indietro · ‹H›": "Rotation back · ‹H›", "Rotazione avanti · ‹A›": "Rotation forward · ‹A›", "Rotazione indietro · ‹A›": "Rotation back · ‹A›", "Cambio ‹H›: esce ‹n›, entra ‹n›": "Substitution ‹H›: ‹n› out, ‹n› in", "Cambio ‹A›: esce ‹n›, entra ‹n›": "Substitution ‹A›: ‹n› out, ‹n› in", "Errore di squadra": "Team error", "Battuta float": "Float serve", "Battuta salto float": "Jump-float serve", "Battuta salto spin": "Jump-spin serve", "Battuta tesa": "Tense serve", "Battuta super": "Super serve", "Battuta spinta": "Push serve", "Battuta altro": "Other serve", "Ricezione float": "Reception of float", "Ricezione salto float": "Reception of jump float", "Ricezione salto spin": "Reception of jump spin", "Ricezione tesa": "Reception, tense", "Ricezione altro": "Reception, other", "Attacco alta": "High attack", "Attacco mezza": "Medium attack", "Attacco veloce": "Quick attack", "Attacco tesa": "Tense attack", "Attacco super": "Super attack", "Attacco spinta": "Push attack", "Attacco altro": "Other attack", "Muro alta": "Block, high", "Muro mezza": "Block, medium", "Muro veloce": "Block, quick", "Muro tesa": "Block, tense", "Muro altro": "Block, other", "Difesa alta": "Dig, high", "Difesa mezza": "Dig, medium", "Difesa veloce": "Dig, quick", "Difesa tesa": "Dig, tense", "Difesa altro": "Dig, other", "Alzata alta": "Set, high", "Alzata mezza": "Set, medium", "Alzata veloce": "Set, quick", "Alzata tesa": "Set, tense", "Alzata altro": "Set, other", "Free ball alta": "Free ball, high", "Free ball mezza": "Free ball, medium", "Free ball altro": "Free ball, other", "Mezzo ace": "Half ace", "Esclamativa": "Exclamation", "Ribaltata": "Overpass", "Positivo": "Positive", "Coperto": "Covered", "Negativo": "Negative", "Murato": "Blocked", "Rigiocabile": "Playable", "Invasione": "Net fault", "Perfetta": "Perfect", "Media": "Average", "Scarsa": "Poor", "Punto": "Point", "veloce in ‹n›": "quick in ‹n›", "alta in ‹n›": "high in ‹n›", "primo tempo": "first tempo", "primo dietro": "back first tempo", "sette": "seven", "fast": "slide", "pipe": "pipe", "pipe alta": "high pipe", "mezza": "half", "alta al centro": "high in the middle", "pipe in ‹n›": "pipe in ‹n›", "seconda": "setter dump", "su davanti": "to front", "su dietro": "to back", "su centro": "to middle", "su pipe": "to pipe", "su palleggio": "to setter", "zona ‹n›": "zone ‹n›", "zona ‹n›→‹n›": "zone ‹n›→‹n›", "zona ?→‹n›": "zone ?→‹n›", "forte": "hard", "piazzata": "placed", "pallonetto": "tip", "‹n› a muro": "‹n› blockers", "V‹n› (alta in ‹n›)": "V‹n› (high in ‹n›)", "X‹n› (veloce in ‹n›)": "X‹n› (quick in ‹n›)", "X‹n› (primo tempo)": "X‹n› (first tempo)", "X‹n› (pipe)": "X‹n› (pipe)", "Partita": "Match", "Filtro set": "Set filter", "PDF tabellino": "PDF box score", "PDF play by play": "PDF play by play", "Side-out (‹n›/‹n›)": "Side-out (‹n›/‹n›)", "Break-point (‹n›/‹n›)": "Break point (‹n›/‹n›)", "Ricezione positiva": "Positive reception", "Efficienza attacco": "Attack efficiency", "Punti fatti (S+A+B)": "Points scored (S+A+B)", "Muri punto": "Block points", "Errori": "Errors", "Errori (di cui ‹n› di squadra)": "Errors (‹n› team errors)", "Giocatrice": "Player", "Pt": "Pts", "Tot": "Tot", "Err": "Err", "Eff": "Eff", "Pos": "Pos", "Prf": "Prf", "Mur": "Blk", "Pt%": "Pts%", "Alz.": "Set", "Squadra": "Team", "fuori rosa": "not on roster", "Nessuna azione in questo filtro": "No actions for this filter", "Errori di squadra (senza giocatrice, es. invasione o fallo di posizione):": "Team errors (no player, e.g. net or position fault):", ", ognuno con punto alla squadra avversaria. Non compaiono nelle righe delle giocatrici.": ", each giving a point to the opponent. They are not in the player rows.", "Side-out e break-point per rotazione": "Side-out and break point by rotation", "P‹n›–P‹n› indica la zona in cui si trova la palleggiatrice (ruolo P nella rosa). Se manca il ruolo P si usa il numero di rotazione dall'inizio del set.": "P‹n›–P‹n› is the zone where the setter is (role P on the roster). Without a P role, the rotation number from the start of the set is used.", "Rot.": "Rot.", "Side-out": "Side-out", "Break-point": "Break point", "Ancora nessuno scambio": "No rallies yet", "Direzioni: zone di arrivo": "Directions: landing zones", "Metà campo vista da dietro, rete in alto. Conta le azioni con zona di arrivo inserita.": "Half court seen from behind, net at the top. Counts actions with a landing zone.", "Battuta ‹H›": "Serve ‹H›", "Battuta ‹A›": "Serve ‹A›", "Attacco ‹H›": "Attack ‹H›", "Attacco ‹A›": "Attack ‹A›", "‹n› azioni con zona": "‹n› actions with a zone", "‹n› pt": "‹n› pts", "Nome squadra": "Team name", "Rosa": "Roster", "Una giocatrice per riga:": "One player per line:", "numero cognome nome ruolo": "number surname name role", ". Ruoli: P palleggio, S schiacciatrice, O opposto, C centrale, L libero.": ". Roles: P setter, S outside hitter, O opposite, C middle blocker, L libero.", "Stesso formato. Il ruolo P serve a calcolare le rotazioni P‹n›–P‹n›.": "Same format. The P role is used to work out rotations P‹n›–P‹n›.", "Formazione iniziale": "Starting lineup", "impostata": "set", "da impostare": "to be set", "copiata dal set precedente": "copied from the previous set", "rete in alto": "net at the top", "Zona ‹n›": "Zone ‹n›", "Prima battuta": "First serve", "Copia dal set precedente": "Copy from previous set", "Svuota questo set": "Clear this set", "Se non imposti un set, viene usata la formazione del set precedente e la battuta si alterna. Le modifiche ricalcolano subito punteggio e rotazioni.": "If you don't set a set, the previous set's lineup is used and the serve alternates. Changes recalculate score and rotations right away.", "Il set ‹n› non ha un set precedente": "Set ‹n› has no previous set", "‹H› · rete in alto": "‹H› · net at the top", "‹A› · rete in alto": "‹A› · net at the top", "Palleggio": "Setter", "Schiacciatrice": "Outside hitter", "Opposto": "Opposite", "Centrale": "Middle blocker", "Libero": "Libero", "Tasti per le valutazioni": "Evaluation keys", "Clicca sul tasto di una valutazione e premi il tasto della tastiera da usare. Quando scrivi un codice, quel tasto scrive il simbolo: per esempio con": "Click an evaluation's key and press the keyboard key to use. When you type a code, that key writes the symbol: for example with", "scrivi": "you type", "e nel codice compare": "and the code shows", ". Fondamentali, tipi e zone li scrivi con le loro lettere e i numeri, come sempre.": ". Skills, types and zones are typed with their letters and numbers as usual.", "Perfetta · ace · attacco o muro punto": "Perfect · ace · attack or block point", "Media · attacco coperto": "Average · covered attack", "Ribaltata · murato · invasione": "Overpass · blocked · net fault", "ace": "ace", "attacco o muro punto": "attack or block point", "attacco coperto": "covered attack", "murato": "blocked", "invasione": "net fault", "Nessun tasto": "No key", "Premi il tasto…": "Press the key…", "Ripristina i tasti suggeriti": "Restore suggested keys", "Suggeriti per la tastiera italiana: ò à ù è ì '": "Suggested for the Italian keyboard: ò à ù è ì '", "Tasti suggeriti ripristinati": "Suggested keys restored", "Scegli il tasto per #": "Choose the key for #", "Scegli il tasto per +": "Choose the key for +", "Scegli il tasto per !": "Choose the key for !", "Scegli il tasto per -": "Choose the key for -", "Scegli il tasto per /": "Choose the key for /", "Scegli il tasto per =": "Choose the key for =", "Togli il tasto per #": "Remove the key for #", "Togli il tasto per +": "Remove the key for +", "Togli il tasto per !": "Remove the key for !", "Togli il tasto per -": "Remove the key for -", "Togli il tasto per /": "Remove the key for /", "Togli il tasto per =": "Remove the key for =", "Altri tasti rapidi (facoltativo)": "Other shortcut keys (optional)", "Un tasto può anche scrivere un pezzo di codice più lungo, come una combinazione d'attacco o un codice intero. Qui servono i tasti": "A key can also write a longer piece of code, such as an attack combination or a whole code. Here you need keys", "oppure combinazioni con": "or combinations with", "Aggiungi tasto": "Add key", "Carica esempi": "Load examples", "Tasto": "Key", "Nome": "Name", "Testo inserito": "Inserted text", "Quando lo premi": "When pressed", "Esempio": "Example", "Inserisce nella riga": "Inserts into the line", "Inserisce e registra": "Inserts and records", "Imposta tasto": "Set key", "da completare": "incomplete", "Nessun tasto rapido. Premi “Aggiungi tasto” o ripristina quelli predefiniti.": "No shortcut keys. Press “Add key” or load the examples.", "Segnaposto": "Placeholders", "squadra e numero della giocatrice al servizio, presi dalla rotazione: con F‹n› =": "team and number of the player serving, taken from the rotation: with F‹n› =", "scrivi solo la valutazione e le zone": "you only type the evaluation and zones", "prefisso della squadra di casa (": "home team prefix (", "prefisso della squadra ospite (": "away team prefix (", "Più codici in un solo tasto: separali con uno spazio, per esempio": "Several codes in one key: separate them with a space, for example", "Da sapere sul Mac": "Good to know on a Mac", "Sulla tastiera del Mac i tasti F regolano luminosità e volume: per usarli qui tieni premuto": "On a Mac keyboard the F keys control brightness and volume: to use them here hold", ", oppure attiva": ", or turn on", "Impostazioni di Sistema → Tastiera → Usa i tasti F‹n›, F‹n›… come tasti funzione standard": "System Settings → Keyboard → Use F‹n›, F‹n›… keys as standard function keys", "Le combinazioni con": "Combinations with", "funzionano subito e non scrivono i caratteri speciali (ø, ∑…) nel campo del codice.": "work right away and don't type special characters (ø, ∑…) into the code field.", "Le valutazioni possono usare anche un tasto singolo; questi altri tasti no, perché scrivono testi più lunghi.": "Evaluations can use a single key; these other keys can't, because they write longer text.", "Restano riservati:": "Reserved:", "per il video e le combinazioni con": "for the video, and combinations with", "I tasti sono salvati con le impostazioni dell'app: restano uguali per tutte le partite e finiscono nel backup .json.": "Keys are saved with the app settings: they stay the same for every match and are included in the .json backup.", "Ripristinare i tasti predefiniti?": "Load the example keys?", "I tasti che hai impostato vengono sostituiti dalla lista iniziale.": "The keys you set are replaced by the example list.", "Ripristina": "Restore", "Tasti predefiniti ripristinati": "Example keys loaded", "Le combinazioni con ⌘ sono riservate al Mac e al browser": "⌘ combinations are reserved for the Mac and the browser", "Questo tasto ha già una funzione in rilevazione": "This key already has a function while scouting", "I numeri servono per maglie e zone": "Numbers are used for shirt numbers and zones", "L'asterisco indica la squadra di casa": "The asterisk marks the home team", "Ctrl+K, J, L e Z sono già usati": "Ctrl+K, J, L and Z are already used", "Ctrl+K, J e L controllano il video": "Ctrl+K, J and L control the video", "Ctrl+Z annulla l'ultima azione": "Ctrl+Z undoes the last action", "Da solo questo tasto serve per scrivere i codici: usalo con ⌥ Option o ⌃ Ctrl, oppure scegli un tasto F": "On its own this key is needed to type codes: use it with ⌥ Option or ⌃ Ctrl, or choose an F key", "Questo tasto è già usato per #": "This key is already used for #", "Questo tasto è già usato per +": "This key is already used for +", "Questo tasto è già usato per !": "This key is already used for !", "Questo tasto è già usato per -": "This key is already used for -", "Questo tasto è già usato per /": "This key is already used for /", "Questo tasto è già usato per =": "This key is already used for =", "Carica il file della partita": "Load the match file", "Scegli file .dvw": "Choose .dvw file", "oppure trascinalo qui": "or drag it here", "Incolla il contenuto del file": "Paste the file content", "Contenuto del file .dvw": ".dvw file content", "Leggi il testo": "Read text", "Incolla prima il contenuto del file": "Paste the file content first", "Accetta i .dvw dell'app per tablet, di questo programma e di Data Volley. Vengono letti squadre, rose, formazioni, codici, cambi, time-out e orari di ogni azione. Il punteggio viene ricalcolato e confrontato con quello del file.": "Accepts .dvw files from the tablet app, from this program and from Data Volley. Teams, rosters, lineups, codes, substitutions, time-outs and the time of each action are read. The score is recalculated and checked against the file.", "File": "File", "Rose": "Rosters", "‹n› + ‹n› giocatrici": "‹n› + ‹n› players", "‹n› codici, ‹n› punti": "‹n› codes, ‹n› points", "righe non leggibili": "unreadable lines", "‹n› righe non leggibili": "‹n› unreadable lines", "Orari": "Times", "presenti su tutte le azioni": "present on every action", "presenti su ‹n› azioni su ‹n›": "present on ‹n› of ‹n› actions", "assenti: non si potrà sincronizzare il video": "missing: the video can't be synced", "il file contiene già i tempi video": "the file already contains video times", "non indicati": "not given", "Importa la partita": "Import match", "Annulla": "Cancel", "Partita importata": "Match imported", "Nel file manca la sezione [‹n›SCOUT] con le azioni. Controlla che sia un file .dvw.": "The file has no [‹n›SCOUT] section with actions. Check that it is a .dvw file.", "Importate ‹n› azioni.": "‹n› actions imported.", "Punteggio ricalcolato:": "Recalculated score:", "coincide con il file": "matches the file", "diverso dal file": "different from the file", "‹n› punti senza codice sono stati aggiunti come punto manuale.": "‹n› points without a code were added as manual points.", "‹n› righe non leggibili sono state saltate.": "‹n› unreadable lines were skipped.", "Il file conteneva già i tempi video: puoi comunque risincronizzare a destra.": "The file already had video times: you can still resync on the right.", "Ora sincronizza il video nel riquadro a destra.": "Now sync the video in the panel on the right.", "Apri la rilevazione": "Open scouting", "Vedi le statistiche": "See statistics", "set ‹n› in corso ‹n›–‹n›": "set ‹n› in progress ‹n›–‹n›", "testo incollato": "pasted text", "Sincronizza con il video": "Sync with the video", "Carica il video della partita.": "Load the match video.", "Porta il video al momento in cui viene colpita la": "Move the video to the moment the", "prima battuta del set ‹n›": "first serve of set ‹n›", "e premi": "is hit and press", "Imposta": "Set", "Premi": "Press", "Vai": "Go", "per controllare. Se è un po' sfasato, correggi con −‹n› s / +‹n› s.": "to check. If it's slightly off, adjust with −‹n› s / +‹n› s.", "Se il video è stato tagliato o messo in pausa tra un set e l'altro, ripeti per la prima battuta di ogni set.": "If the video was cut or paused between sets, repeat for the first serve of each set.", "Nessun video caricato": "No video loaded", "Play / pausa": "Play / pause", "Qui compaiono i set della partita importata. Importa un .dvw con gli orari delle azioni per iniziare.": "The sets of the imported match appear here. Import a .dvw with action times to start.", "Orario tablet": "Tablet time", "Tempo video": "Video time", "Stato": "Status", "impostato": "set", "come set ‹n›": "as set ‹n›", "calcolato": "calculated", "Carica prima il video": "Load the video first", "Sposta indietro di ‹n› secondo": "Move back ‹n› second", "Sposta avanti di ‹n› secondo": "Move forward ‹n› second", "Rimuovi sincronizzazione set ‹n›": "Remove sync for set ‹n›", "“Imposta” usa il punto in cui si trova ora il video. Dopo la sincronizzazione, nel registro ogni azione ha il suo tempo video cliccabile.": "“Set” uses the video's current position. After syncing, every action in the log has its own clickable video time.", "Carica il video per poter impostare i punti di sincronizzazione.": "Load the video to set the sync points.", "Data": "Date", "Campionato / torneo": "League / tournament", "Nuova partita (tieni le squadre)": "New match (keep teams)", "Azzera tutto": "Reset everything", "Export e backup": "Export & backup", "Esporta .dvw": "Export .dvw", "Esporta CSV azioni": "Export actions CSV", "Backup completo (.json)": "Full backup (.json)", "Ripristina backup": "Restore backup", "Il .dvw usa la struttura di Data Volley (sezioni [‹n›TEAMS], [‹n›PLAYERS], [‹n›SCOUT] con codici, rotazioni e punteggi). Il backup salva tutto: squadre, formazioni, azioni e impostazioni.": "The .dvw uses the Data Volley structure ([‹n›TEAMS], [‹n›PLAYERS], [‹n›SCOUT] sections with codes, rotations and scores). The backup saves everything: teams, lineups, actions and settings.", "Google Sheets": "Google Sheets", "URL dell'app web Apps Script": "Apps Script web app URL", "Invia ogni azione appena la registri": "Send each action as soon as you record it", "Prova connessione": "Test connection", "Invia tutta la partita": "Send the whole match", "Non configurato": "Not set up", "Ogni partita va in un foglio separato. Se cancelli o modifichi azioni, il foglio viene riscritto da capo al prossimo invio. La sincronizzazione funziona quando l'app è pubblicata su GitHub Pages; nell'anteprima di Claude le richieste esterne sono bloccate.": "Each match goes in its own sheet. If you delete or edit actions, the sheet is rewritten from scratch on the next send. Sync works when the app is published on GitHub Pages; in the Claude preview, external requests are blocked.", "Crea un Google Sheet, poi": "Create a Google Sheet, then", "Estensioni → Apps Script": "Extensions → Apps Script", "Incolla il codice qui sotto al posto di quello esistente.": "Paste the code below in place of the existing code.", "Esegui il deployment → Nuovo deployment → App web": "Deploy → New deployment → Web app", ", esegui come": ", execute as", "Me": "Me", ", accesso": ", access", "Chiunque": "Anyone", "Copia l'URL che finisce con": "Copy the URL ending in", "nel campo a sinistra.": "into the field on the left.", "Copia codice Apps Script": "Copy Apps Script code", "Da inviare: ‹n› azioni": "To send: ‹n› actions", "Allineato: ‹n› azioni inviate": "Up to date: ‹n› actions sent", "Riscrivo il foglio…": "Rewriting the sheet…", "Invio azioni ‹n›–‹n›…": "Sending actions ‹n›–‹n›…", "Provo…": "Testing…", "Inserisci prima l'URL": "Enter the URL first", "Inserisci prima l'URL di Apps Script": "Enter the Apps Script URL first", "Richiesta bloccata o URL non raggiungibile": "Request blocked or URL unreachable", "Nessuna risposta entro ‹n› secondi": "No response within ‹n› seconds", "Risposta non valida": "Invalid response", "Azione sconosciuta": "Unknown action", "Google Sheets: ": "Google Sheets: ", "Codice Apps Script copiato": "Apps Script code copied", "Contenuto copiato": "Content copied", "Seleziona e copia con Cmd+C": "Select and copy with Cmd+C", "Copia non disponibile qui": "Copy not available here", "Nuova partita?": "New match?", "Nuova partita": "New match", "Le azioni della partita attuale vengono cancellate. Squadre, rose e formazione del set ‹n› restano. Fai prima un backup se vuoi conservarla.": "The current match's actions are deleted. Teams, rosters and the set ‹n› lineup are kept. Make a backup first if you want to keep it.", "Azzerare tutto?": "Reset everything?", "Cancella squadre, rose, formazioni e azioni. Le impostazioni di Google Sheets restano.": "Deletes teams, rosters, lineups and actions. Google Sheets settings are kept.", "Nuova partita pronta": "New match ready", "Tutto azzerato": "Everything reset", "Ripristinare il backup?": "Restore the backup?", "Backup ripristinato": "Backup restored", "Il file non è un backup valido": "The file is not a valid backup", "Copia": "Copy", "Chiudi": "Close", "File .dvw": ".dvw file", "CSV azioni": "Actions CSV", "Backup completo": "Full backup", "Se il download non parte (per esempio nell'anteprima), copia il contenuto e salvalo come": "If the download doesn't start (for example in the preview), copy the content and save it as", "Preparo il PDF...": "Preparing the PDF...", "Non ci sono ancora punti da mettere nel report": "There are no points to report yet", "Qui non posso salvare il PDF: usa l'app pubblicata su GitHub Pages": "The PDF can't be saved here: use the app published on GitHub Pages", "Non riesco a caricare il generatore PDF: controlla la connessione e riprova": "Can't load the PDF generator: check the connection and try again", "Errore nella creazione del PDF": "Error creating the PDF", "Tabellino": "Box score", "Incontro:": "Match:", "Data:": "Date:", "Orario:": "Time:", "Campionato:": "League:", "Città:": "City:", "Impianto:": "Venue:", "MVP:": "MVP:", "Arbitri:": "Referees:", "Durata": "Duration", "Punteggi parziali": "Partial scores", "Sostituzioni": "Substitutions", "Finali": "Final", "Falli": "Faults", "Totali squadra": "Team totals", "Punti vinti": "Points won", "Bat": "Srv", "Att": "Att", "Er.Av": "Opp.Err", "Allenatore:": "Coach:", "Assistente:": "Assistant:", "Time out:": "Time-outs:", "BP": "BP", "V-P": "W-L", "Pos%": "Pos%", "Prf%": "Prf%", "Eff%": "Eff%", "Break point": "Break point", "Positiva +#": "Positive +#", "Perfetto": "Perfect", "Efficienza": "Efficiency", "Vinti-Persi": "Won-Lost", "Rot. iniziale": "Start. rot.", "Pall. iniziale": "Start. setter", "Entrato": "Sub in", "Prima batt.": "First serve", "Ricezioni": "Receptions", "Salto float": "Jump float", "Salto spin": "Jump spin", "Float": "Float", "su": "on", "ric.": "rec.", "Set ‹n› sincronizzato a ‹n›:‹n›.‹n›": "Set ‹n› synced at ‹n›:‹n›.‹n›", "Durata ‹n›:‹n›": "Duration ‹n›:‹n›", "Parziali": "Partials", "Punti CP": "Side-out pts", "Battute": "Serves", "Punti BP": "BP points", "Nessun punto CP": "No side-out points", "Nessun break point": "No break points", "Ogni ‹n› ricezioni": "Every ‹n› receptions", "Ogni ‹n›.‹n› ricezioni": "Every ‹n›.‹n› receptions", "‹n› punto (‹n›%)": "‹n› point (‹n›%)", "Ogni ‹n› battute": "Every ‹n› serves", "Ogni ‹n›.‹n› battute": "Every ‹n›.‹n› serves", "‹n› break point (‹n›%)": "‹n› break point (‹n›%)", "Rot Diff": "Rot Diff", "CAMBIO PALLA DIRETTO": "DIRECT SIDE-OUT", "ATTACCO DOPO RICEZIONE POSITIVA": "ATTACK AFTER POSITIVE RECEPTION", "ATTACCO DOPO RICEZIONE NEGATIVA": "ATTACK AFTER NEGATIVE RECEPTION", "CONTRATTACCO": "TRANSITION ATTACK", "%Pt": "%Pts", "AllinScout · tabellino generato il ‹n›/‹n›/‹n›, ‹n›:‹n›": "AllinScout · box score created on ‹n›/‹n›/‹n›, ‹n›:‹n›", "Play by play": "Play by play", "‹H› avanti": "‹H› ahead", "‹A› avanti": "‹A› ahead", "N": "#", "Come è finita": "How it ended", "Azione (codici)": "Rally (codes)", "Pagina ‹n›": "Page ‹n›", "AllinScout · play by play": "AllinScout · play by play", "Punto assegnato": "Point awarded", "Errore in battuta": "Serve error", "Errore in ricezione": "Reception error", "Errore in attacco": "Attack error", "Attacco murato": "Attack blocked", "Invasione a muro": "Net fault on block", "Errore a muro": "Block error", "Errore in difesa": "Dig error", "Errore in alzata": "Setting error", "Errore su free ball": "Free ball error", "Punto a": "Point to", "File pronto: ": "File ready: ", "PDF pronto: ": "PDF ready: ", "Richiedi l'accesso": "Request access", "Per usare AllinScout serve l'autorizzazione dell'amministratore. Compila la richiesta: appena viene approvata, l'app si sblocca su questo dispositivo.": "AllinScout needs the administrator's approval. Fill in the request: as soon as it's approved, the app unlocks on this device.", "Nome e cognome": "Full name", "Email": "Email", "Squadra / società": "Team / club", "Ruolo": "Role", "Allenatore": "Coach", "Scoutman / analista": "Scout / analyst", "Dirigente": "Manager", "Messaggio (facoltativo)": "Message (optional)", "Invia richiesta": "Send request", "Invio in corso…": "Sending…", "Richiesta inviata": "Request sent", "In attesa di approvazione": "Waiting for approval", "La richiesta è arrivata all'amministratore. Quando la approva, l'app si apre da sola su questo dispositivo (controllo ogni ‹n› secondi).": "Your request has reached the administrator. Once approved, the app opens by itself on this device (checking every ‹n› seconds).", "Controlla ora": "Check now", "Modifica la richiesta": "Edit the request", "Richiesta non approvata": "Request not approved", "Accesso revocato": "Access revoked", "L'amministratore non ha approvato la richiesta. Se pensi che sia un errore, puoi inviarne una nuova.": "The administrator did not approve the request. If you think this is a mistake, you can send a new one.", "L'accesso a AllinScout per questo dispositivo è stato revocato. I dati salvati restano sul dispositivo.": "AllinScout access for this device has been revoked. Saved data stays on the device.", "Invia una nuova richiesta": "Send a new request", "Scrivi nome e cognome": "Enter your full name", "Scrivi un indirizzo email valido": "Enter a valid email address", "Non riesco a contattare il server delle autorizzazioni. Controlla la connessione e riprova.": "Can't reach the authorization server. Check the connection and try again.", "Approvato: benvenuto in AllinScout": "Approved: welcome to AllinScout", "Accesso": "Access", "Accessi": "Access", "Questo dispositivo": "This device", "Richiesta inviata il": "Request sent on", "approvato": "approved", "in attesa": "pending", "rifiutato": "rejected", "revocato": "revoked", "Controllo accessi attivo: chi apre l'app per la prima volta deve chiederti l'autorizzazione.": "Access control on: anyone opening the app for the first time must ask for your approval.", "Controllo accessi non ancora attivo: imposta ACCESS_URL in index.html (vedi le istruzioni).": "Access control not active yet: set ACCESS_URL in index.html (see the instructions).", "Vedi la schermata di accesso": "Preview the access screen", "Anteprima: le richieste non vengono inviate.": "Preview: requests are not sent.", "Chiudi anteprima": "Close preview", "Nell'anteprima di Claude il controllo accessi è sospeso, così puoi provare l'app.": "In the Claude preview, access control is suspended so you can try the app."}};
+let LANG=(()=>{try{const l=localStorage.getItem('allinscout.lang');if(l==='it'||l==='en')return l}catch(e){}return /^it/i.test(navigator.language||'it')?'it':'en'})();
+document.documentElement.lang=LANG;
+function trFill(t,vals,names){let i=0;return t.replace(/‹n›/g,()=>vals[i++]!=null?vals[i-1]:'').replace(/‹H›/g,names[0]).replace(/‹A›/g,names[1])}
+function tr1(core,depth){
+  const D=I18N[LANG];if(!D)return null;
+  if(D[core]!=null) return D[core];
+  let k=core;const names=[];
+  try{names.push(tName('*'),tName('a'))}catch(e){names.push('\u0000','\u0001')}
+  names.map((n,i)=>[n,i]).sort((a,b)=>b[0].length-a[0].length).forEach(([n,i])=>{if(n&&n.length>1)k=k.split(n).join(i?'‹A›':'‹H›')});
+  const vals=[];k=k.replace(/\d+/g,d=>{vals.push(d);return '‹n›'});
+  if(D[k]!=null) return trFill(D[k],vals,names);
+  if(!depth){
+    const parts=core.split(/(\s*·\s*)/);
+    if(parts.length>1){let any=false;const out=parts.map((p,i)=>{if(i%2||!p.trim())return p;const r=tr1(p.trim(),1);if(r!=null){any=true;return p.replace(p.trim(),r)}return p});if(any)return out.join('')}
+  }
+  return null;
+}
+function tr(s){
+  if(LANG==='it'||s==null) return s;
+  const str=String(s),m=str.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  if(!m[2]||!/[A-Za-zÀ-ÿ]/.test(m[2])) return str;
+  const r=tr1(m[2]);return r==null?str:m[1]+r+m[3];
+}
+const TR_SKIP='script,style,textarea,pre,.notr';
+function trNode(n){
+  if(n.nodeType===3){
+    if(n.__tr===n.nodeValue) return;
+    const pe=n.parentElement;if(!pe||pe.closest(TR_SKIP)) return;
+    const v=tr(n.nodeValue);if(v!==n.nodeValue) n.nodeValue=v;
+    n.__tr=n.nodeValue;return;
+  }
+  if(n.nodeType!==1||n.matches(TR_SKIP)) return;
+  ['placeholder','title','aria-label'].forEach(a=>{const v=n.getAttribute(a);if(v){const t=tr(v);if(t!==v)n.setAttribute(a,t)}});
+  if(n.tagName==='INPUT'&&(n.type==='button'||n.type==='submit')&&n.value) n.value=tr(n.value);
+  n.childNodes.forEach(trNode);
+}
+function startI18n(){
+  document.querySelectorAll('.langsw button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===LANG)));
+  if(LANG==='it') return;
+  const an=document.querySelector('.anatomy');if(an)an.textContent=ANATOMY_EN;
+  trNode(document.body);
+  new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')trNode(m.target);else m.addedNodes.forEach(trNode)})).observe(document.body,{childList:true,subtree:true,characterData:true});
+}
+const ANATOMY_EN=`*  14  S  M  +  ~~ ~  1  5  A
+│  │   │  │  │  │  │  │  │  └ landing subzone (A–D)
+│  │   │  │  │  │  │  │  └ landing zone
+│  │   │  │  │  │  │  └ start zone
+│  │   │  │  │  │  └ set target (F B C P S)
+│  │   │  │  │  └ attack combination (X5, V5…) or setter call (K1…)
+│  │   │  │  └ evaluation
+│  │   │  └ type / trajectory
+│  │   └ skill
+│  └ shirt number
+└ team: * (or nothing) = home, a = away`;
+document.addEventListener('click',e=>{const b=e.target.closest('.langsw [data-lang]');if(!b||b.dataset.lang===LANG)return;
+  try{localStorage.setItem('allinscout.lang',b.dataset.lang)}catch(err){}location.reload()});
 
 const SK={S:'Battuta',R:'Ricezione',A:'Attacco',B:'Muro',D:'Difesa',E:'Alzata',F:'Free ball'};
 const EVG={'#':'Perfetta','+':'Positiva','!':'Media','-':'Negativa','/':'Scarsa','=':'Errore'};
@@ -839,7 +938,7 @@ function renderLog(){
     rows.push('<tr class="'+cls.join(' ')+'" data-i="'+i+'">'+
       '<td class="num fhint">'+(i+1)+'</td><td class="num">'+a.set+'</td>'+
       '<td class="sc">'+sc['*']+'–'+sc.a+(a.setEnd?' <span class="tag">fine set</span>':'')+'</td>'+
-      '<td class="code" data-edit="'+i+'" title="Modifica">'+esc(a.raw)+'</td>'+
+      '<td class="code notr" data-edit="'+i+'" title="Modifica">'+esc(a.raw)+'</td>'+
       '<td class="desc">'+(a.err?'<span class="neg">'+esc(a.err)+'</span>':describe(a))+pt+warn+'</td>'+
       '<td>'+(a.vt!=null?'<button class="vt" data-seek="'+i+'">'+fmtTime(a.vt)+'</button>':'')+'</td>'+
       '<td><button class="x" data-del="'+i+'" aria-label="Elimina azione '+(i+1)+'">✕</button></td></tr>');
@@ -1219,7 +1318,7 @@ document.addEventListener('keydown',e=>{
     if(pr){keyErr[capturing]=pr}else{delete keyErr[capturing];Object.assign(k,{code:c.code,alt:c.alt,ctrl:c.ctrl,shift:c.shift});save();toast(keyName(k)+' → '+(k.label||k.text))}
     capturing=null;renderKeys();renderKeyStrip();return;
   }
-  if(view!=='scout'||!$('overlay').hidden) return;
+  if(view!=='scout'||!$('overlay').hidden||!$('gate').hidden) return;
   const tg=e.target;if(tg===inp) return;
   if(tg&&/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)) return;
   const ek=matchEval(e);if(ek){e.preventDefault();inp.focus();insertAtCaret(ek);return}
@@ -1497,6 +1596,7 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }`;
 function renderData(){
+  renderAccPanel();
   $('mDate').value=S.meta.date||'';$('mComp').value=S.meta.comp||'';
   $('gsUrl').value=S.settings.gsUrl||'';$('gsAuto').checked=!!S.settings.gsAuto;
   $('gsCode').textContent=GS_CODE;
@@ -1732,7 +1832,7 @@ function setInfo(st,R){
 const PDFC={H:[28,102,168],A:[196,80,42],INK:[22,32,42],MU:[96,106,120],G:[228,233,238],G2:[244,246,248]};
 function pdfBase(doc){
   const f=(sz,stl,col)=>{doc.setFont('helvetica',stl||'normal');doc.setFontSize(sz);doc.setTextColor(...(col||PDFC.INK))};
-  const T=(s,x,y,al)=>doc.text(W1252(s),x,y,al?{align:al}:undefined);
+  const T=(s,x,y,al)=>doc.text(W1252(tr(s)),x,y,al?{align:al}:undefined);
   const fit=(s,w)=>{s=W1252(s);if(doc.getTextWidth(s)<=w)return s;while(s.length>1&&doc.getTextWidth(s+'...')>w)s=s.slice(0,-1);return s+'...'};
   const logo=()=>{const im=document.querySelector('.brand .logo');return im?im.src:null};
   return {f,T,fit,logo};
@@ -1814,7 +1914,7 @@ async function pdfTabellino(){
       y+=RH});
     // allenatore, time-out
     f(7);let yl=yS+3.2;T('Allenatore:',12,yl);yl+=3.4;T('Assistente:',12,yl);yl+=3.4;
-    const toTxt='Time out: '+TR.perSet.map(p=>'('+p.s+') '+(p.to.length?p.to.join(' '):'--')).join(' ');
+    const toTxt=tr('Time out:')+' '+TR.perSet.map(p=>'('+p.s+') '+(p.to.length?p.to.join(' '):'--')).join(' ');
     doc.splitTextToSize(W1252(toTxt),C.s1.x-13).forEach(l=>{T(l,12,yl);yl+=3.2});
     y=Math.max(y,yl-1)+1.5;
     // bordi e separatori
@@ -1877,12 +1977,12 @@ function rallyEnd(r){
   if(e.kind==='point') return {txt:'Punto assegnato',team:e.team};
   if(e.kind==='teamerr') return {txt:'Errore di squadra  ·  '+tName(e.team),team:e.team};
   const ev=e.ev,s=e.skill;
-  const det=a=>{const p=[];if(a.combo)p.push(a.combo);if(a.sz||a.ez)p.push('z'+(a.sz||'?')+(a.ez?'>'+a.ez+(a.sub||''):''));if(a.ht)p.push(HT[a.ht]);return p.length?'  ('+p.join(', ')+')':''};
-  if(s==='A'&&ev==='/'&&l&&l.skill==='B') return {txt:'Muro punto  ·  '+who(l)+'  (su '+who(e)+')',team:l.team};
-  if(s==='S'&&ev==='#') return {txt:'Ace  ·  '+who(e)+(l&&l.skill==='R'?'  (ric. '+l.num+')':''),team:e.team};
+  const det=a=>{const p=[];if(a.combo)p.push(a.combo);if(a.sz||a.ez)p.push('z'+(a.sz||'?')+(a.ez?'>'+a.ez+(a.sub||''):''));if(a.ht)p.push(tr(HT[a.ht]));return p.length?'  ('+p.join(', ')+')':''};
+  if(s==='A'&&ev==='/'&&l&&l.skill==='B') return {txt:'Muro punto  ·  '+who(l)+'  ('+tr('su')+' '+who(e)+')',team:l.team};
+  if(s==='S'&&ev==='#') return {txt:'Ace  ·  '+who(e)+(l&&l.skill==='R'?'  ('+tr('ric.')+' '+l.num+')':''),team:e.team};
   if(s==='A'&&ev==='#') return {txt:'Attacco punto  ·  '+who(e)+det(e),team:e.team};
   if(s==='B'&&ev==='#') return {txt:'Muro punto  ·  '+who(e),team:e.team};
-  const lab={S:'Errore in battuta',R:'Errore in ricezione',A:ev==='/'?'Attacco murato':'Errore in attacco',B:ev==='/'?'Invasione a muro':'Errore a muro',D:'Errore in difesa',E:'Errore in alzata',F:'Errore su free ball'}[s]||'Errore';
+  const lab0={S:'Errore in battuta',R:'Errore in ricezione',A:ev==='/'?'Attacco murato':'Errore in attacco',B:ev==='/'?'Invasione a muro':'Errore a muro',D:'Errore in difesa',E:'Errore in alzata',F:'Errore su free ball'}[s]||'Errore',lab=tr(lab0);
   return {txt:lab+'  ·  '+who(e)+(s==='A'?det(e):''),team:e.team};
 }
 async function pdfPlayByPlay(){
@@ -1911,12 +2011,12 @@ async function pdfPlayByPlay(){
     // titolo set
     f(11,'bold');T('Set '+s,10,y+4);
     if(x.fin){f(11,'bold',PDFC.H);T(String(x.fin['*']),32,y+4,'right');f(11,'bold');T('-',34,y+4,'center');f(11,'bold',PDFC.A);T(String(x.fin.a),36,y+4)}
-    f(7,'normal',PDFC.MU);T('Parziali '+x.parz.join('  ')+'   ·   Durata '+hhmm(x.dur),48,y+4);
+    f(7,'normal',PDFC.MU);T(tr('Parziali')+' '+x.parz.join('  ')+'   ·   '+tr('Durata')+' '+hhmm(x.dur),48,y+4);
     y+=6.5;
     // andamento: differenza punti dopo ogni scambio
     const ch=15,mid=y+ch/2,bw=Math.min(4,186/rl.length),mxd=Math.max(3,...rl.map(r=>Math.abs(r.score['*']-r.score.a)));
     doc.setDrawColor(...PDFC.G);doc.setLineWidth(0.15);doc.rect(10,y,190,ch);doc.setDrawColor(...PDFC.MU);doc.line(12,mid,198,mid);
-    f(5.2,'normal',PDFC.H);T(fit(tName('*'),40)+' avanti',12,y+2.4);f(5.2,'normal',PDFC.A);T(fit(tName('a'),40)+' avanti',12,y+ch-0.8);
+    f(5.2,'normal',PDFC.H);T(fit(tr(tName('*')+' avanti'),40),12,y+2.4);f(5.2,'normal',PDFC.A);T(fit(tr(tName('a')+' avanti'),40),12,y+ch-0.8);
     rl.forEach((r,i)=>{const d=r.score['*']-r.score.a,h=Math.abs(d)/mxd*(ch/2-1.2);if(!d)return;
       doc.setFillColor(...(d>0?PDFC.H:PDFC.A));doc.rect(12+i*bw+bw*0.12,d>0?mid-h:mid,bw*0.76,h,'F')});
     doc.setDrawColor(...PDFC.INK);
@@ -1986,7 +2086,7 @@ function copyText(t,msg){
   function fallback(){const ta=$('dlgText');if(ta){ta.focus();ta.select();toast('Seleziona e copia con Cmd+C')}else toast('Copia non disponibile qui')}
 }
 let toastT=null;
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
+function toast(m){const t=$('toast');t.textContent=tr(m);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
 
 /* ---------- sample match ---------- */
 function buildSample(){
@@ -2040,7 +2140,116 @@ function buildSample(){
   }
 }
 
+/* ---------- controllo accessi ---------- */
+/* Incolla qui l'URL dell'app web "AllinScout Accessi" (Apps Script, finisce con /exec).
+   Finché resta vuoto, l'app si apre senza chiedere l'autorizzazione. */
+const ACCESS_URL='https://script.google.com/macros/s/AKfycby4FXrsdzy5WtHSeHPdj3o3-4tLLT3jVGb9ZH0J0PFfIxFT_qq0g83jURPa0tkRUf1E9g/exec';
+const ACC_KEY='allinscout.access';
+const IN_VIEWER=!!(window.claude&&typeof window.claude.use==='function');
+const ACC_POLL=20;
+let gateTimer=null,gateDemo=false,demoAcc=null;
+function accLoad(){if(gateDemo)return demoAcc;try{return JSON.parse(localStorage.getItem(ACC_KEY))||null}catch(e){return null}}
+function accSave(a){if(gateDemo){demoAcc=a;return}try{localStorage.setItem(ACC_KEY,JSON.stringify(a))}catch(e){}}
+function showGate(state,msg){
+  $('gate').hidden=false;document.querySelector('.app').hidden=true;
+  $('gateDemoNote').hidden=!gateDemo;
+  const lg=document.querySelector('.brand .logo');if(lg)$('gateLogo').src=lg.src;
+  renderGate(state,msg);
+}
+function hideGate(){$('gate').hidden=true;document.querySelector('.app').hidden=false;clearInterval(gateTimer);gateTimer=null;gateDemo=false;if(view==='scout')setTimeout(()=>inp.focus(),0)}
+function renderGate(state,msg){
+  const a=accLoad()||{},b=$('gateBody'),v=x=>esc(x||'');
+  if(state==='form'){
+    const roles=['Allenatore','Scoutman / analista','Dirigente','Altro'];
+    b.innerHTML='<h2 id="gateTitle">Richiedi l\'accesso</h2>'+
+      '<p class="fhint">Per usare AllinScout serve l\'autorizzazione dell\'amministratore. Compila la richiesta: appena viene approvata, l\'app si sblocca su questo dispositivo.</p>'+
+      '<form class="gate-form" id="gateForm" novalidate>'+
+        '<div class="field full"><label class="label" for="gName">Nome e cognome</label><input type="text" id="gName" autocomplete="name" value="'+v(a.name)+'"></div>'+
+        '<div class="field full"><label class="label" for="gEmail">Email</label><input type="email" id="gEmail" autocomplete="email" value="'+v(a.email)+'"></div>'+
+        '<div class="field"><label class="label" for="gTeam">Squadra / società</label><input type="text" id="gTeam" autocomplete="organization" value="'+v(a.team)+'"></div>'+
+        '<div class="field"><label class="label" for="gRole">Ruolo</label><select id="gRole">'+roles.map(r=>'<option value="'+r+'"'+(a.role===r?' selected':'')+'>'+r+'</option>').join('')+'</select></div>'+
+        '<div class="field full"><label class="label" for="gNote">Messaggio (facoltativo)</label><textarea id="gNote">'+v(a.note)+'</textarea></div>'+
+        '<div class="full gate-err" id="gErr" role="alert">'+(msg?esc(tr(msg)):'')+'</div>'+
+        '<div class="full actions"><button class="btn primary" type="submit" id="gSend">Invia richiesta</button></div>'+
+      '</form>';
+    return;
+  }
+  const when=a.sent?new Date(a.sent).toLocaleString(LANG==='it'?'it-IT':'en-GB',{dateStyle:'medium',timeStyle:'short'}):'';
+  if(state==='pending'){
+    b.innerHTML='<h2 id="gateTitle">Richiesta inviata</h2>'+
+      '<div class="gate-state"><span class="dot"></span><div class="col" style="gap:4px"><strong>In attesa di approvazione</strong>'+
+      '<span class="fhint">'+esc(tr('La richiesta è arrivata all\'amministratore. Quando la approva, l\'app si apre da sola su questo dispositivo (controllo ogni '+ACC_POLL+' secondi).'))+'</span>'+
+      '<span class="fhint"><span>Richiesta inviata il</span> '+esc(when)+' · '+v(a.name)+' · '+v(a.email)+'</span></div></div>'+
+      '<div class="gate-err" id="gErr" role="alert">'+(msg?esc(tr(msg)):'')+'</div>'+
+      '<div class="actions"><button class="btn primary" id="gCheck">Controlla ora</button><button class="btn" id="gEdit">Modifica la richiesta</button></div>';
+    return;
+  }
+  const rej=state==='rejected';
+  b.innerHTML='<h2 id="gateTitle">'+(rej?'Richiesta non approvata':'Accesso revocato')+'</h2>'+
+    '<div class="gate-state bad"><span class="dot"></span><p class="fhint">'+(rej?'L\'amministratore non ha approvato la richiesta. Se pensi che sia un errore, puoi inviarne una nuova.':'L\'accesso a AllinScout per questo dispositivo è stato revocato. I dati salvati restano sul dispositivo.')+'</p></div>'+
+    '<div class="actions"><button class="btn primary" id="gEdit">Invia una nuova richiesta</button></div>';
+}
+async function accCheck(){
+  const a=accLoad();if(!a||!a.id) return null;
+  if(gateDemo) return a.status;
+  const r=await jsonp(ACCESS_URL,{action:'status',id:a.id});
+  if(!r||!r.ok) throw new Error(r&&r.error||'Risposta non valida');
+  a.status=String(r.status||'').trim().toLowerCase();a.checkedAt=Date.now();accSave(a);
+  return a.status;
+}
+function handleStatus(st){
+  if(st==='approvato'){hideGate();toast('Approvato: benvenuto in AllinScout');renderData&&view==='data'&&renderData()}
+  else if(st==='rifiutato'){clearInterval(gateTimer);showGate('rejected')}
+  else if(st==='revocato'){clearInterval(gateTimer);showGate('revoked')}
+  else if(st===null){showGate('form')}
+}
+function pollGate(){
+  clearInterval(gateTimer);
+  const tick=async()=>{try{handleStatus(await accCheck());const e=$('gErr');if(e&&$('gCheck'))e.textContent=''}catch(err){const e=$('gErr');if(e)e.textContent=tr('Non riesco a contattare il server delle autorizzazioni. Controlla la connessione e riprova.')}};
+  tick();if(!gateDemo)gateTimer=setInterval(tick,ACC_POLL*1000);
+}
+$('gateBody').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const g=id=>$(id).value.trim(),name=g('gName'),email=g('gEmail');
+  if(name.length<3){$('gErr').textContent=tr('Scrivi nome e cognome');$('gName').focus();return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('gErr').textContent=tr('Scrivi un indirizzo email valido');$('gEmail').focus();return}
+  const prev=accLoad()||{};
+  const a={id:prev.id||(uid()+uid()),name,email,team:g('gTeam'),role:$('gRole').value,note:g('gNote'),sent:Date.now(),status:'in attesa'};
+  const btn=$('gSend');btn.disabled=true;btn.textContent=tr('Invio in corso…');
+  try{
+    if(!gateDemo){const r=await jsonp(ACCESS_URL,{action:'request',id:a.id,name:a.name,email:a.email,team:a.team,role:a.role,note:a.note,lang:LANG,ua:(navigator.platform||'')+' · '+(navigator.userAgent.match(/(Chrome|Safari|Firefox|Edg)\/[\d.]+/)||[''])[0]});
+      if(!r||!r.ok) throw new Error(r&&r.error||'');a.status=String(r.status||'in attesa').toLowerCase()}
+    accSave(a);
+    if(a.status==='approvato'){handleStatus('approvato');return}
+    showGate('pending');pollGate();
+  }catch(err){btn.disabled=false;btn.textContent=tr('Invia richiesta');$('gErr').textContent=tr('Non riesco a contattare il server delle autorizzazioni. Controlla la connessione e riprova.')}
+});
+$('gateBody').addEventListener('click',e=>{
+  if(e.target.id==='gCheck'){pollGate();return}
+  if(e.target.id==='gEdit'){clearInterval(gateTimer);showGate('form')}
+});
+$('gateDemoClose').addEventListener('click',()=>{hideGate();setView('data')});
+$('accDemo').addEventListener('click',()=>{gateDemo=true;demoAcc=null;showGate('form')});
+function renderAccPanel(){
+  const a=accLoad(),on=!!ACCESS_URL,el=$('accStatus');
+  el.className='status '+(on?'ok':'');
+  el.querySelector('span').textContent=tr(on?'Controllo accessi attivo: chi apre l\'app per la prima volta deve chiederti l\'autorizzazione.':'Controllo accessi non ancora attivo: imposta ACCESS_URL in index.html (vedi le istruzioni).');
+  $('accDevice').textContent=IN_VIEWER?tr('Nell\'anteprima di Claude il controllo accessi è sospeso, così puoi provare l\'app.'):(a&&a.id?tr('Questo dispositivo')+': '+(a.name||'')+' · '+(a.email||'')+' · '+tr(a.status||''):'');
+}
+function accBoot(){
+  if(!ACCESS_URL||IN_VIEWER) return;
+  const a=accLoad();
+  if(a&&a.status==='approvato'){
+    /* già approvato: l'app si apre subito (anche offline) e verifica in background */
+    accCheck().then(st=>{if(st==='rifiutato'||st==='revocato')handleStatus(st)}).catch(()=>{});
+    return;
+  }
+  if(a&&a.id&&a.sent){showGate(a.status==='rifiutato'?'rejected':a.status==='revocato'?'revoked':'pending');if(a.status==='in attesa'||!a.status)pollGate();return}
+  showGate('form');
+}
+
 /* ---------- boot ---------- */
+startI18n();
 S=load();
 if(!S) buildSample();
 const kv=S.settings&&S.settings.keysV;
@@ -2053,6 +2262,7 @@ $('autoPause').checked=S.settings.autoPause!==false;
 $('autoPause').addEventListener('change',e=>{S.settings.autoPause=e.target.checked;if(!e.target.checked)resumeIfAuto();save();inp.focus()});
 renderAll();
 inp.focus();
+accBoot();
 window.__scout={parseCode,replay,getState:()=>S,exportDVW,parseDvw,importDvw,pdfTabellino,pdfPlayByPlay};
 })();
 </script>
