@@ -1624,7 +1624,7 @@ function anaHighlight(){const c=PL&&PL.clips[PL.i],ids=c?new Set(c.acts.map(a=>a
   document.querySelectorAll('#anaList tr[data-aid]').forEach(r=>{const on=ids.has(r.dataset.aid);r.classList.toggle('playing',on);if(on&&PL.scroll)r.scrollIntoView({block:'nearest'})});renderAnaPlayer()}
 function anaPlayClip(i){
   if(!PL||i<0||i>=PL.clips.length){anaStop();return}
-  const c=PL.clips[i];PL.i=i;PL.scroll=true;anaCur=c.acts[0].key;anaHighlight();renderSyncBox();
+  const c=PL.clips[i];PL.i=i;PL.scroll=true;PL.hold=false;anaCur=c.acts[0].key;anaHighlight();renderSyncBox();
   if(!anaVids[c.mid]){toast(tr('Manca il video di')+' '+c.acts[0].mlab+': '+tr('caricalo in Partite'));
     const nx=PL.clips.findIndex((x,k)=>k>i&&anaVids[x.mid]);if(nx>0)setTimeout(()=>{if(PL)anaPlayClip(nx)},900);else{PL=null;anaHighlight()}return}
   anaUseSrc(c.mid,()=>{if(!PL||PL.clips[PL.i]!==c)return;vid.currentTime=c.s;vid.play().catch(()=>{})});
@@ -1635,7 +1635,7 @@ function anaStart(fromId){
   PL={clips,i:0};anaPlayClip(i);
 }
 function anaStop(){if(PL){PL=null;if(!vid.paused)vid.pause()}anaHighlight()}
-vid.addEventListener('timeupdate',()=>{if(!PL||view!=='video')return;const c=PL.clips[PL.i];if(c&&anaVids[c.mid]&&vid.src===anaVids[c.mid].url&&vid.currentTime>=c.e){if(PL.i+1<PL.clips.length)anaPlayClip(PL.i+1);else{vid.pause();PL=null;anaHighlight();toast(tr('Fine degli spezzoni'))}}});
+vid.addEventListener('timeupdate',()=>{if(!PL||PL.hold||view!=='video')return;const c=PL.clips[PL.i];if(c&&anaVids[c.mid]&&vid.src===anaVids[c.mid].url&&vid.currentTime>=c.e){if(PL.i+1<PL.clips.length)anaPlayClip(PL.i+1);else{vid.pause();PL=null;anaHighlight();toast(tr('Fine degli spezzoni'))}}});
 vid.addEventListener('play',()=>{if(view==='video')renderAnaPlayer()});vid.addEventListener('pause',()=>{if(view==='video')renderAnaPlayer()});
 function renderAna(){
   const s=anaSettings();
@@ -1670,10 +1670,12 @@ function renderSyncBox(){
 }
 $('anaSync').addEventListener('click',e=>{
   const st=e.target.closest('[data-step]');
-  if(st){if(!vidLoaded()){toast('Carica il video della partita');return}if(PL){PL=null}vid.pause();vid.currentTime=Math.max(0,vid.currentTime+ +st.dataset.step);return}
+  /* spostamenti: il video continua a scorrere dal nuovo punto (se era in pausa resta in pausa);
+     la playlist non salta allo spezzone dopo mentre stai allineando, Succ./Prec. la fanno ripartire */
+  if(st){if(!vidLoaded()){toast('Carica il video della partita');return}if(PL)PL.hold=true;vid.currentTime=Math.max(0,vid.currentTime+ +st.dataset.step);return}
   if(e.target.closest('#syncFix')){const a=curAct();if(!a||!vidLoaded()){toast(vidLoaded()?tr('Clic su un\'azione nell\'elenco per allinearla.'):'Carica il video della partita');return}
     if(!anaVids[a.mid]||vid.src!==anaVids[a.mid].url){toast(tr('Il video mostrato non è di questa partita: clic sull\'azione per aprirlo'));return}
-    if(PL){PL=null}vid.pause();const t=Math.round(vid.currentTime*100)/100;setVx(a,t);toast(tr('Azione allineata a')+' '+fmtTime(t));return}
+    if(PL)PL.hold=true;vid.pause();const t=Math.round(vid.currentTime*100)/100;setVx(a,t);toast(tr('Azione allineata a')+' '+fmtTime(t));return}
   if(e.target.closest('#syncClear')){const a=curAct();if(a)setVx(a,null);return}
   const al=e.target.closest('#syncAll');if(al){const mid=syncMid();voffOf(mid)[al.dataset.sk]=+al.dataset.avg;syncSaved(mid);toast(tr('Correzione applicata a tutte le azioni del fondamentale'));return}
   if(e.target.closest('#syncReset')){const mid=syncMid();confirmBox('Azzerare le correzioni?','Tolgo la correzione di ogni fondamentale e tutte le azioni allineate a mano in questa partita.','Azzera',()=>{
