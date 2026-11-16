@@ -1160,7 +1160,10 @@ function setView(v){
 /* ---------- UI: scout ---------- */
 let ST=null, editIdx=-1;
 /* a inizio scambio il campo propone squadra, numero della battitrice e S (es. *7S) */
-function serveExpected(st){const l=st.actions.filter(a=>a.set===st.set&&!a.err);for(let i=l.length-1;i>=0;i--){const a=l[i];if(a.point)return true;if(a.kind==='skill')return false}return true}
+/* lo scambio è chiuso se dopo l'ultima battuta è stato assegnato un punto, anche se dopo ci sono codici collegati o altre azioni */
+function serveExpected(st){const l=st.actions.filter(a=>a.set===st.set&&!a.err);let lastS=-1,lastP=-1;
+  l.forEach((a,i)=>{if(a.kind==='skill'&&a.skill==='S')lastS=i;if(a.point)lastP=i});
+  return lastS<0||lastP>=lastS}
 function prefillServe(){
   if(S.settings.autoServe===false||editIdx>=0||S.meta.closed||S.meta.sample||view!=='scout')return;
   const st=ST;if(!st||st.over||st.lineupErr||!st.pos||!st.serving)return;
